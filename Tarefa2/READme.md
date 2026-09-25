@@ -1,4 +1,4 @@
-# Tarefa 1 — Bulk RNA-seq
+# Tarefa 2 — Bulk RNA-seq
 
 ## Preparo dos dados
 
