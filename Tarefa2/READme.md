@@ -1,10 +1,10 @@
-# Tarefa 1 — Do sequenciamento ao alinhamento
+# Tarefa 1 — Bulk RNA-seq
 
-## Organismo
+## Preparo dos dados
 
-- **Nome científico:** *Mycoplasma genitalium*
-- **Run:** `SRR39974648`
-- **Dados:** reads paired-end
+- **Organismo:** Humano
+- **Run:**
+- **Dados:** Bulk RNA-Seq
 
 ## Genoma de referência
 
