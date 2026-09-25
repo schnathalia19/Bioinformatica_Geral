@@ -39,4 +39,4 @@ samtools index alinhamento_SRR39974648.bam
 
 ## Arquivos de input e output
 
-(https://drive.google.com/drive/folders/1pEP3cjxZ8WJUcEzd2Kppi2nfOzLeey7H?usp=sharing)
+(https://drive.google.com/drive/folders/1QDaOsWwIyT8FkGg632ImXi6VpDVscEBb?usp=drive_link)
