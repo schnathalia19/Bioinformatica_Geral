@@ -1,41 +1,45 @@
 # Tarefa 2 — Bulk RNA-seq
 
-## Preparo dos dados
+## Informações
+- GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE348127
+- SRA Run Selector: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA1532893&o=acc_s%3Aa
 
-- **Organismo:** Humano
-- **Run:**
-- **Dados:** Bulk RNA-Seq
+## Download dos FASTQ
+mkdir -p fastq
+for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944; do
+  echo "Baixando $r..."
+  fastq-dump -X 5000000 --split-3 --gzip --skip-technical --readids -O fastq "$r"
+done
 
-## Genoma de referência
+## Controle de qualidade
+mkdir -p qc
+fastqc fastq/*.fastq.gz -o qc
+multiqc qc -o qc
 
-- **Assembly:** `GCF_040556925.1_ASM4055692v1`
-- **Arquivo FASTA:** `GCF_040556925.1_ASM4055692v1_genomic.fna`
+## Índice do genoma e anotação
+wget https://genome-idx.s3.amazonaws.com/hisat/grch38_genome.tar.gz
+tar xzf grch38_genome.tar.gz
+wget https://ftp.ensembl.org/pub/release-112/gtf/homo_sapiens/Homo_sapiens.GRCh38.112.gtf.gz
+gunzip Homo_sapiens.GRCh38.112.gtf.gz
 
-### Download e conversão das reads
+## Alinhamento + sort + index + flagstat
+mkdir -p bam
+for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944; do
+  hisat2 -p 8 --rna-strandness RF -x grch38/genome \
+    -1 fastq/${r}_1.fastq.gz -2 fastq/${r}_2.fastq.gz \
+    --summary-file bam/${r}.hisat2.txt \
+  | samtools sort -@ 4 -o bam/${r}.bam
+  samtools index bam/${r}.bam
+  samtools flagstat bam/${r}.bam > bam/${r}.flagstat.txt
+done
+grep "overall alignment rate" bam/*.hisat2.txt
 
-```bash
-prefetch SRR39974648
-fasterq-dump --split-files SRR39974648
-```
-
-### Indexação da referência
-
-```bash
-minimap2 -d M_genitalium.mmi GCF_040556925.1_ASM4055692v1_genomic.fna
-```
-
-### Alinhamento
-
-```bash
-minimap2 -ax sr M_genitalium.mmi SRR39974648_1.fastq SRR39974648_2.fastq > alinhamento_SRR39974648.sam
-```
-
-### Ordenação e indexação do BAM
-
-```bash
-samtools sort -o alinhamento_SRR39974648.bam alinhamento_SRR39974648.sam
-samtools index alinhamento_SRR39974648.bam
-```
+## Contagem
+mkdir -p counts
+featureCounts -p --countReadPairs -s 2 -T 8 \
+  -a Homo_sapiens.GRCh38.112.gtf \
+  -o counts/counts.txt bam/*.bam
+cat counts/counts.txt.summary
 
 ## Arquivos de input e output
 
