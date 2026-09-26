@@ -1,11 +1,11 @@
 # Tarefa 2 — Bulk RNA-seq
 
-#### Escolha do dataset
+## Escolha do dataset
 - GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE348127
 - SRA Run Selector: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA1532893&o=acc_s%3Aa
 
-#### Alinhamento e contagem
-## Download dos FASTQ
+## Alinhamento e contagem
+Download dos FASTQ
 ```bash
 mkdir -p fastq
 for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944; do
@@ -14,14 +14,14 @@ for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944
 done
 ```
 
-## Controle de qualidade
+Controle de qualidade
 ```bash
 mkdir -p qc
 fastqc fastq/*.fastq.gz -o qc
 multiqc qc -o qc
 ```
 
-## Índice do genoma e anotação
+Índice do genoma e anotação
 ```bash
 wget https://genome-idx.s3.amazonaws.com/hisat/grch38_genome.tar.gz
 tar xzf grch38_genome.tar.gz
@@ -29,7 +29,7 @@ wget https://ftp.ensembl.org/pub/release-112/gtf/homo_sapiens/Homo_sapiens.GRCh3
 gunzip Homo_sapiens.GRCh38.112.gtf.gz
 ```
 
-## Alinhamento + sort + index + flagstat
+Alinhamento + sort + index + flagstat
 ```bash
 mkdir -p bam
 for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944; do
@@ -43,7 +43,7 @@ done
 grep "overall alignment rate" bam/*.hisat2.txt
 ```
 
-## Contagem
+Contagem
 ```bash
 mkdir -p counts
 featureCounts -p --countReadPairs -s 2 -T 8 \
@@ -51,7 +51,7 @@ featureCounts -p --countReadPairs -s 2 -T 8 \
   -o counts/counts.txt bam/*.bam
 cat counts/counts.txt.summary
 ```
-#### Expressão diferencial e GSEA em R
+## Expressão diferencial e GSEA em R
 
 
 
