@@ -46,7 +46,7 @@ grep "overall alignment rate" bam/*.hisat2.txt
 Contagem
 ```bash
 mkdir -p counts
-featureCounts -p --countReadPairs -s 2 -T 8 \
+featureCounts -p --countReadPairs -s 2 \
   -a Homo_sapiens.GRCh38.112.gtf \
   -o counts/counts.txt bam/*.bam
 cat counts/counts.txt.summary
