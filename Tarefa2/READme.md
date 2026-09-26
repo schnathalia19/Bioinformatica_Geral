@@ -82,17 +82,14 @@ coldata <- data.frame(
 )
 rownames(coldata) <- coldata$run
 
-# IMPORTANTE: mesma ordem na matriz e no colData
 counts <- counts[, rownames(coldata)]
 stopifnot(all(colnames(counts) == rownames(coldata)))
 
-# Matriz de contagens brutas (entregável)
 write.csv(counts, "matriz_contagens_brutas.csv")
 ```
 
 ### DESeq2
 ```r
-# Desenho pareado: controla o efeito da doadora
 dds <- DESeqDataSetFromMatrix(counts, coldata, design = ~ donor + condition)
 dds <- dds[rowSums(counts(dds) >= 10) >= 3, ]   # filtro de baixa expressão
 dds <- DESeq(dds)
@@ -119,13 +116,6 @@ vsd <- vst(dds, blind = TRUE)
 plotPCA(vsd, intgroup = c("condition", "donor")) +
   geom_point(aes(shape = donor), size = 4) + theme_bw()
 ggsave("PCA.png", width = 6, height = 4.5)
-
-# PCA removendo o efeito da doadora (só para visualização)
-vsd_bc <- vsd
-assay(vsd_bc) <- limma::removeBatchEffect(assay(vsd), batch = vsd$donor,
-                                          design = model.matrix(~ condition, colData(vsd)))
-plotPCA(vsd_bc, intgroup = "condition") + theme_bw()
-ggsave("PCA_sem_efeito_doadora.png", width = 6, height = 4.5)
 ```
 
 ### Volcano plot
@@ -177,8 +167,6 @@ ggsave("GSEA_Hallmark_dotplot.png", width = 10, height = 6)
 
 gseaplot2(gse_h, geneSetID = 1:3, pvalue_table = TRUE)
 ggsave("GSEA_top3.png", width = 9, height = 6)
-
-ridgeplot(gse_h)   # opcional
 
 write.csv(as.data.frame(gse_go), "GSEA_GO.csv", row.names = FALSE)
 write.csv(as.data.frame(gse_h),  "GSEA_Hallmark.csv", row.names = FALSE)
