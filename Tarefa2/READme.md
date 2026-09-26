@@ -1,10 +1,10 @@
 # Tarefa 2 — Bulk RNA-seq
 
-## Escolha do dataset
+## 1. Escolha do dataset
 - GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE348127
 - SRA Run Selector: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA1532893&o=acc_s%3Aa
 
-## Alinhamento e contagem
+## 2. Alinhamento e contagem
 Download dos FASTQ
 ```bash
 mkdir -p fastq
@@ -51,7 +51,7 @@ featureCounts -p --countReadPairs -s 2 -T 8 \
   -o counts/counts.txt bam/*.bam
 cat counts/counts.txt.summary
 ```
-## Expressão diferencial e GSEA em R
+## 3. Expressão diferencial e GSEA em R
 
 
 
