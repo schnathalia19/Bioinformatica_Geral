@@ -113,8 +113,6 @@ nrow(degs)
 write.csv(res_df, "resultados_DESeq2.csv", row.names = FALSE)
 ```
 
-> Se quiser, rode também com `design = ~ condition` (como o fornecedor fez, sem parear) e compare quantos DEGs cada desenho encontra.
-
 ### PCA
 ```r
 vsd <- vst(dds, blind = TRUE)
@@ -129,8 +127,6 @@ assay(vsd_bc) <- limma::removeBatchEffect(assay(vsd), batch = vsd$donor,
 plotPCA(vsd_bc, intgroup = "condition") + theme_bw()
 ggsave("PCA_sem_efeito_doadora.png", width = 6, height = 4.5)
 ```
-
-> Com amostras de doadoras diferentes, é comum que a PC1 separe por doadora e não por tratamento. Vale comentar isso na apresentação.
 
 ### Volcano plot
 ```r
