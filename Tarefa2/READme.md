@@ -85,6 +85,8 @@ cat counts/counts.txt.summary
 
 ## 3. Expressão diferencial e GSEA em R
 
+> **Antes de executar:** crie o objeto `dds` a partir da matriz de contagens e dos metadados das amostras. Os metadados precisam identificar a condição (`condition`) e o doador (`donor`) de cada amostra. Essa etapa não está incluída no código abaixo.
+
 ### 3.1. Carregar os pacotes
 
 ```r
@@ -102,14 +104,11 @@ library(msigdbr)
 ### 3.2. Análise com DESeq2
 
 ```r
-# Remover genes com contagens muito baixas
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep, ]
 
-# Executar a análise de expressão diferencial
 dds <- DESeq(dds)
 
-# Comparar BaP com CTRL e aplicar shrinkage ao log2 fold change
 res <- results(
   dds,
   contrast = c("condition", "BaP", "CTRL")
@@ -121,7 +120,6 @@ res_shrunk <- lfcShrink(
   type = "apeglm"
 )
 
-# Converter IDs Ensembl em símbolos dos genes
 res_shrunk$symbol <- mapIds(
   org.Hs.eg.db,
   keys = row.names(res_shrunk),
@@ -173,7 +171,7 @@ top_genes <- head(
 )
 
 mat <- assay(vsd)[top_genes, ]
-mat <- mat - rowMeans(mat) # Centralizar os valores por gene
+mat <- mat - rowMeans(mat)
 rownames(mat) <- res_shrunk$symbol[top_genes]
 
 pheatmap(
