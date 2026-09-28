@@ -55,122 +55,138 @@ cat counts/counts.txt.summary
 
 ## 3. Expressão diferencial e GSEA em R
 
-### Pacotes
+Carregar os pacotes
+
 ```r
-if (!require("BiocManager")) install.packages("BiocManager")
-BiocManager::install(c("DESeq2", "apeglm", "EnhancedVolcano", "org.Hs.eg.db",
-                       "clusterProfiler", "enrichplot", "edgeR", "limma"))
-install.packages(c("tidyverse", "pheatmap", "msigdbr"))
+library(tidyverse)
+library(DESeq2)
+library(apeglm)
+library(pheatmap)
+library(EnhancedVolcano)
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(enrichplot)
+library(msigdbr)
 ```
 
-### Importar contagens e montar o colData
+DESeq2
+
 ```r
-library(tidyverse); library(DESeq2); library(apeglm); library(pheatmap)
-library(EnhancedVolcano); library(org.Hs.eg.db); library(clusterProfiler)
-library(enrichplot); library(msigdbr)
+# Remover genes com contagens muito baixas
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
 
-fc <- read.delim("counts/counts.txt", comment.char = "#", check.names = FALSE)
-counts <- as.matrix(fc[, 7:ncol(fc)])
-rownames(counts) <- fc$Geneid
-colnames(counts) <- sub("\\.bam$", "", basename(colnames(counts)))
-
-coldata <- data.frame(
-  run       = c("SRR40776944", "SRR40776943", "SRR40776942",
-                "SRR40776941", "SRR40776940", "SRR40776939"),
-  condition = factor(rep(c("CTRL", "BaP"), each = 3), levels = c("CTRL", "BaP")),
-  donor     = factor(rep(c("NK187", "NK110", "12SKera006"), 2))
-)
-rownames(coldata) <- coldata$run
-
-counts <- counts[, rownames(coldata)]
-stopifnot(all(colnames(counts) == rownames(coldata)))
-
-write.csv(counts, "matriz_contagens_brutas.csv")
-```
-
-### DESeq2
-```r
-dds <- DESeqDataSetFromMatrix(counts, coldata, design = ~ donor + condition)
-dds <- dds[rowSums(counts(dds) >= 10) >= 3, ]   # filtro de baixa expressão
+Executar a análise de expressão diferencial
 dds <- DESeq(dds)
 
-res    <- results(dds, contrast = c("condition", "BaP", "CTRL"), alpha = 0.05)
-resLFC <- lfcShrink(dds, coef = "condition_BaP_vs_CTRL", type = "apeglm")
-summary(res)
+# Comparar BaP com CTRL e aplicar shrinkage ao log2 fold change
+res <- results(dds, contrast = c("condition", "BaP", "CTRL"))
+res_shrunk <- lfcShrink(
+  dds,
+  coef = "condition_BaP_vs_CTRL",
+  type = "apeglm"
+)
 
-res_df <- as.data.frame(resLFC) |>
-  rownames_to_column("ensembl") |>
-  mutate(symbol = mapIds(org.Hs.eg.db, ensembl, "SYMBOL", "ENSEMBL", multiVals = "first"),
-         stat   = res[ensembl, "stat"]) |>
-  arrange(padj)
-
-degs <- filter(res_df, padj < 0.05, abs(log2FoldChange) >= 1)
-nrow(degs)
-
-write.csv(res_df, "resultados_DESeq2.csv", row.names = FALSE)
+# Converter IDs Ensembl em símbolos dos genes
+res_shrunk$symbol <- mapIds(
+  org.Hs.eg.db,
+  keys = row.names(res_shrunk),
+  column = "SYMBOL",
+  keytype = "ENSEMBL",
+  multiVals = "first"
+)
 ```
 
-### PCA
+PCA
+
 ```r
-vsd <- vst(dds, blind = TRUE)
-plotPCA(vsd, intgroup = c("condition", "donor")) +
-  geom_point(aes(shape = donor), size = 4) + theme_bw()
-ggsave("PCA.png", width = 6, height = 4.5)
+vsd <- vst(dds, blind = FALSE)
+
+pca_plot <- plotPCA(vsd, intgroup = c("condition", "donor")) +
+  ggtitle("PCA - Efeito do Tratamento BaP") +
+  theme_minimal()
+
+print(pca_plot)
 ```
 
-### Volcano plot
+Volcano plot
+
 ```r
-EnhancedVolcano(res_df, lab = res_df$symbol,
-                x = "log2FoldChange", y = "padj",
-                pCutoff = 0.05, FCcutoff = 1,
-                title = "BaP vs DMSO", subtitle = "DESeq2 (apeglm)",
-                ylab = bquote(~-Log[10] ~ italic(P)[adj]))
-ggsave("volcano.png", width = 8, height = 7)
+volcano_plot <- EnhancedVolcano(
+  res_shrunk,
+  lab = res_shrunk$symbol,
+  x = "log2FoldChange",
+  y = "padj",
+  title = "Volcano Plot: BaP vs CTRL",
+  pCutoff = 0.05,
+  FCcutoff = 1,
+  pointSize = 2.0,
+  labSize = 4.0
+)
+
+print(volcano_plot)
 ```
 
-### Heatmap dos principais DEGs
+Heatmap dos 40 principais genes
+
 ```r
-top <- head(filter(res_df, padj < 0.05), 50)
-mat <- assay(vsd)[top$ensembl, ]
-rownames(mat) <- ifelse(is.na(top$symbol), top$ensembl, top$symbol)
+top_genes <- head(order(res_shrunk$padj, decreasing = FALSE), 40)
 
-pheatmap(mat, scale = "row",
-         annotation_col = coldata[, c("condition", "donor")],
-         show_colnames = FALSE, fontsize_row = 7,
-         filename = "heatmap_top50.png", width = 6, height = 9)
+mat <- assay(vsd)[top_genes, ]
+mat <- mat - rowMeans(mat) # Centralizar os valores
+rownames(mat) <- res_shrunk$symbol[top_genes]
+
+pheatmap(
+  mat,
+  annotation_col = as.data.frame(
+    colData(dds)[, "condition", drop = FALSE]
+  ),
+  main = "Top 40 DEGs (Heatmap)",
+  fontsize_row = 8
+)
 ```
 
-### GSEA (todos os genes, ranqueados pela estatística de Wald)
+GSEA
+
 ```r
-ranks <- res_df |> filter(!is.na(stat)) |> select(ensembl, stat) |> deframe()
-ranks <- sort(ranks, decreasing = TRUE)
-set.seed(123)
+# Preparar a lista ranqueada de genes
+res_gsea <- as.data.frame(res_shrunk) %>%
+  filter(!is.na(symbol) & !is.na(log2FoldChange))
 
-# GO Biological Process (IDs Ensembl direto, sem conversão)
-gse_go <- gseGO(ranks, OrgDb = org.Hs.eg.db, keyType = "ENSEMBL", ont = "BP",
-                minGSSize = 15, maxGSSize = 500, pvalueCutoff = 0.05,
-                eps = 0, seed = TRUE)
-gse_go <- setReadable(gse_go, org.Hs.eg.db, keyType = "ENSEMBL")
+gene_list <- res_gsea$log2FoldChange
+names(gene_list) <- res_gsea$symbol
+gene_list <- sort(gene_list, decreasing = TRUE)
 
-# Hallmarks do MSigDB
-# (em versões antigas do msigdbr, use category = "H" em vez de collection = "H")
-h <- msigdbr(species = "Homo sapiens", collection = "H") |>
-  select(gs_name, ensembl_gene)
-gse_h <- GSEA(ranks, TERM2GENE = h, pvalueCutoff = 0.05, eps = 0, seed = TRUE)
+# Obter as vias Hallmark humanas e executar o GSEA
+m_t2g <- msigdbr(species = "Homo sapiens", category = "H") %>%
+  dplyr::select(gs_name, gene_symbol)
 
-# Figuras
-dotplot(gse_go, showCategory = 10, split = ".sign") + facet_grid(. ~ .sign)
-ggsave("GSEA_GO_dotplot.png", width = 10, height = 7)
-
-dotplot(gse_h, showCategory = 10, split = ".sign") + facet_grid(. ~ .sign)
-ggsave("GSEA_Hallmark_dotplot.png", width = 10, height = 6)
-
-gseaplot2(gse_h, geneSetID = 1:3, pvalue_table = TRUE)
-ggsave("GSEA_top3.png", width = 9, height = 6)
-
-write.csv(as.data.frame(gse_go), "GSEA_GO.csv", row.names = FALSE)
-write.csv(as.data.frame(gse_h),  "GSEA_Hallmark.csv", row.names = FALSE)
+gsea_res <- GSEA(
+  gene_list,
+  TERM2GENE = m_t2g,
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH"
+)
 ```
 
-## Arquivos de input e output
-[Pasta no Google Drive](https://drive.google.com/drive/folders/1QDaOsWwIyT8FkGg632ImXi6VpDVscEBb?usp=drive_link)
+Dotplot das vias enriquecidas
+
+```r
+dot_plot <- dotplot(gsea_res, split = ".sign", showCategory = 10) +
+  facet_grid(. ~ .sign) +
+  ggtitle("GSEA Dotplot - Vias Hallmark")
+
+print(dot_plot)
+```
+
+Gráfico das três principais vias
+
+```r
+gsea_top3 <- gseaplot2(
+  gsea_res,
+  geneSetID = 1:3,
+  title = "Top 3 Vias Enriquecidas"
+)
+
+print(gsea_top3)
+```
