@@ -85,8 +85,6 @@ cat counts/counts.txt.summary
 
 ## 3. Expressão diferencial e GSEA em R
 
-> **Antes de executar:** crie o objeto `dds` a partir da matriz de contagens e dos metadados das amostras. Os metadados precisam identificar a condição (`condition`) e o doador (`donor`) de cada amostra. Essa etapa não está incluída no código abaixo.
-
 ### 3.1. Carregar os pacotes
 
 ```r
@@ -191,7 +189,6 @@ pheatmap(
 ### 3.6. GSEA com vias Hallmark
 
 ```r
-# Preparar a lista ranqueada de genes
 res_gsea <- as.data.frame(res_shrunk) %>%
   filter(!is.na(symbol) & !is.na(log2FoldChange))
 
@@ -199,7 +196,6 @@ gene_list <- res_gsea$log2FoldChange
 names(gene_list) <- res_gsea$symbol
 gene_list <- sort(gene_list, decreasing = TRUE)
 
-# Obter as vias Hallmark humanas e executar o GSEA
 m_t2g <- msigdbr(
   species = "Homo sapiens",
   category = "H"
