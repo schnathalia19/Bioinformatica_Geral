@@ -1,7 +1,5 @@
 # Tarefa 2 — Análise de Bulk RNA-seq
 
-Pipeline de análise de dados de *bulk RNA-seq*, desde o download das leituras e o alinhamento até a análise de expressão diferencial e o enriquecimento de vias.
-
 ## 1. Dataset
 
 | Recurso | Identificador |
