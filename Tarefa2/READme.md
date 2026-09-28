@@ -26,7 +26,7 @@ for r in SRR40776939 SRR40776940 SRR40776941 SRR40776942 SRR40776943 SRR40776944
 done
 ```
 
-> A opção `-X 5000000` limita o download a 5 milhões de registros por amostra.
+> A opção `-X 5000000` limita o download a 5 milhões de bases por amostra.
 
 ### 2.2. Controle de qualidade
 
